@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/cenkalti/rpc2"
 	"github.com/cenkalti/rpc2/jsonrpc"
@@ -76,6 +77,47 @@ func Connect(endpoints string, tlsConfig *tls.Config) (*OvsdbClient, error) {
 			c, err = net.Dial(u.Scheme, host)
 		case SSL:
 			c, err = tls.Dial("tcp", host, tlsConfig)
+		default:
+			err = fmt.Errorf("unknown network protocol %s", u.Scheme)
+		}
+
+		if err == nil {
+			return newRPC2Client(c)
+		}
+	}
+
+	return nil, fmt.Errorf("failed to connect to endpoints %q: %v", endpoints, err)
+}
+
+// The Connect Method with timeout param
+func ConnectWithTimeOut(endpoints string, tlsConfig *tls.Config, timeOut time.Duration) (*OvsdbClient, error) {
+	var c net.Conn
+	var err error
+	var u *url.URL
+
+	for _, endpoint := range strings.Split(endpoints, ",") {
+		if u, err = url.Parse(endpoint); err != nil {
+			return nil, err
+		}
+		// u.Opaque contains the original endPoint with the leading protocol stripped
+		// off. For example: endPoint is "tcp:127.0.0.1:6640" and u.Opaque is "127.0.0.1:6640"
+		host := u.Opaque
+		if len(host) == 0 {
+			host = defaultTCPAddress
+		}
+		switch u.Scheme {
+		case UNIX:
+			path := u.Path
+			if len(path) == 0 {
+				path = defaultUnixAddress
+			}
+			c, err = net.DialTimeout(u.Scheme, path, timeOut)
+		case TCP:
+			c, err = net.DialTimeout(u.Scheme, host, timeOut)
+		case SSL:
+			d :=new(net.Dialer)
+			d.Timeout = timeOut
+			c, err = tls.DialWithDialer(d,"tcp",host, tlsConfig)
 		default:
 			err = fmt.Errorf("unknown network protocol %s", u.Scheme)
 		}
