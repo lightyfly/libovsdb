@@ -8,4 +8,4 @@ require (
 	github.com/cenkalti/rpc2 v0.0.0-20170726070524-c51a77e5f664
 	github.com/stretchr/testify v1.4.0
 )
-replace github.com/socketplane/libovsdb => github.com/lightyfly/libovsdb v0.0.0-20210416064909-41e964e536f0
+replace github.com/socketplane/libovsdb => github.com/lightyfly/libovsdb v0.0.0-20210416064909-41e964e536f0 //indirect
